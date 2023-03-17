@@ -1,69 +1,103 @@
 const express = require("express");
 const cors = require("cors");
-
 const app = express();
+const mongoose = require('mongoose');
 
 // enable CORS for all origins
 app.use(cors());
 
-const films = [
-  {
-    name: "titanic",
-    year: 1998,
-    link: "http://baskino.me/films/dramy/585-titanik.html",
-    director: "Kendrick Lamar",
-    rating: 8.88,
-  },
-  {
-    name: "black widow",
-    year: 2012,
-    link: "http://baskino.me/films/boeviki/28579-chernaya-vdova.html",
-    director: "J. Lopez",
-    rating: 8.88,
-  },
-  {
-    name: "sherlok",
-    year: 2005,
-    link: "http://baskino.me/serial/2334-sherlok.html",
-    director: "C. Diaz",
-    rating: 8.88,
-  },
-  {
-    name: "bond",
-    year: 1961,
-    link: "http://baskino.me/films/boeviki/12500-007-spektr.html",
-    director: "P. Brosnan",
-    rating: 8.88,
-  },
-  {
-    name: "turtles",
-    year: 1990,
-    link: "http://baskino.me/films/boevie-iskustva/9830-cherepashki-nindzya.html",
-    director: "M. Jackson",
-    rating: 8.88,
-  },
-];
+const MONGODB_URI = 'mongodb+srv://zayacny:alabama-neworlean-texas@cluster0.g4tults.mongodb.net/VDM-project?retryWrites=true&w=majority';
+// connect to DB via mongoose
+mongoose
+  .connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("Connected to MongoDB database!");
+  })
+  .catch((error) => {
+    console.log("Error connecting to MongoDB database: ", error.message);
+  });
+// define mongoose schema
+const filmSchema = new mongoose.Schema({
+  name: String,
+  year: Number,
+  link: String,
+  director: String,
+  img: String,
+  originalName: String,
+  rateImdb: Number,
+  country: String,
+  genre: String,
+  duration: String,
+  storyLine: String
+})
+//define model
+const Film = mongoose.model('Film', filmSchema)
 
-const movieData = {
-  img: "http://baskino.me/uploads/images/2012/092/ezlc94.jpg",
-  name: "Топ Ган: Мэверик",
-  originalName: "Top Gun: Maverick",
-  rateImdb: 8.3,
-  year: 2022,
-  country: "США",
-  director: "Джозеф Косински",
-  genre: "Боевики",
-  duration: "02:10:32",
-  storyLine:
-    "Пит Митчелл - один из лучших пилотов, которому дали прозвище Мэверик. Он уже тридцать лет занимается любимым делом, но так и остается инструктором. Герой и сам не заинтересован в повышении по службе, поскольку это помешает ему проводить много времени за штурвалом самолета. В очередной группе новобранцев оказывается лейтенант Брэдли Брэдшоу, сын Ника Брэдшоу. С этого момента Питу предстоит сильно постараться, чтобы справиться с давними переживаниями. Он просто не имеет права отвлекаться от работы, поскольку ему необходимо отобрать группу лучших пилотов для выполнения особо важного задания...",
-};
+/** IMPLEMENTATION VIA NAtive MONGODB Connection ***********************************************************************/
+// const { MongoClient } = require('mongodb');
 
-app.get("/films-list", (req, res) => {
-  res.json({ films });
+// //Connection URL
+// const uri = 'mongodb+srv://zayacny:alabama-neworlean-texas@cluster0.g4tults.mongodb.net/VDM-project?retryWrites=true&w=majority';
+
+// //Database Name
+// const dbName = 'VDM-project';
+
+// // Create a new MongoClient
+// const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+// async function getFilms(client) {
+//   const db = client.db(dbName);
+//   const collection = db.collection('films');
+
+//   return await collection.findOne({ name: 'Titanic' }, function(err, docs) {
+//     if (err) {
+//       console.log('Error finding documents:', err);
+//     } else {
+//       console.log('Found the following documents:');
+//       console.log(docs);
+//     }
+//   });
+// };
+
+// async function main() {
+//   try {
+//     // Use connect method to connect to the server
+//     await client.connect()
+//     let result = await getFilms(client);
+//     console.log('Done!', result)
+//   } catch (error) {
+//     console.log('Error :', error)
+//   } finally {
+//   await setTimeout(() => {client.close()}, 3000) // todo change to 1500
+//   }
+// };
+
+// main().catch(console.error)
+/** ********************************************************************************************* */
+
+app.get("/films-list", async (req, res) => {
+  try {
+    // find all films in collection
+    const films = await Film.find();
+    res.json(films);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+);
+
+app.get("/film-data/:filmName", async (req, res) => {
+  try {
+    // find where name is equal to ":filmName"
+    const film = Film.find({name: req.params.filmName})
+    if(film == null) return res.status(404).json({message: 'Film not found.'})
+  } catch (error) {
+    return res.status(500).json({ message: err.message });
+  }
+  res.json(film);
 });
 
-app.get("/movie-data", (req, res) => {
-  res.json({ movieData });
-});
-
-app.listen(3003, () => console.log("Example app is listening on port 3003."));
+app.listen(3003, () => console.log("Server is listening on port 3003."));
